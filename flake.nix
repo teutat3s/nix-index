@@ -23,10 +23,8 @@
           inherit ((lib.importTOML ./Cargo.toml).package) version;
 
           src = lib.sourceByRegex self [
-            "(examples|src)(/.*)?"
             ''Cargo\.(toml|lock)''
-            ''command-not-found\.sh''
-            ''command-not-found\.nu''
+            "(etc|examples|src)(/.*)?"
           ];
 
           cargoLock = {
@@ -36,12 +34,9 @@
           buildInputs = [ sqlite ];
 
           postInstall = ''
-            substituteInPlace command-not-found.sh \
+            substituteInPlace etc/command-not-found.* \
               --subst-var out
-            install -Dm555 command-not-found.sh -t $out/etc/profile.d
-            substituteInPlace command-not-found.nu \
-              --subst-var out
-            install -Dm555 command-not-found.nu -t $out/etc/profile.d
+            install -Dm444 etc/command-not-found.* -t $out/etc/profile.d
           '';
 
           meta = with lib; {
