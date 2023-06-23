@@ -49,6 +49,7 @@ xdg = "3.0.0"
 xml-rs = "1.0.0"
 xz2 = "0.1.7"
 zstd = { version = "0.13.3", features = [ "zstdmt" ] }
+indoc = "2.0.5"
 
 [dependencies.tokio]
 features = ["full"]
