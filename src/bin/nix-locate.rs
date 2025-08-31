@@ -248,17 +248,25 @@ fn command_not_found(args: Vec<OsString>) -> Result<()> {
 
     // Build the regular expression matcher
     let pattern = format!("^/bin/{}$", regex::escape(&cmd_str));
-    let regex = Regex::new(&pattern).chain_err(|| ErrorKind::Grep(pattern.clone()))?;
+    let regex = Regex::new(&pattern).map_err(|e| Error::Grep {
+        pattern: pattern.clone(),
+        source: e,
+    })?;
 
     // Open the database
     let index_file = database.join("files");
-    let db = database::Reader::open(&index_file)
-        .chain_err(|| ErrorKind::ReadDatabase(index_file.clone()))?;
+    let db = database::Reader::open(&index_file).map_err(|e| Error::ReadDatabase {
+        database: index_file.clone(),
+        source: e,
+    })?;
 
     let results = db
         .query(&regex)
         .run()
-        .chain_err(|| ErrorKind::Grep(pattern.clone()))?
+        .map_err(|e| Error::SearchDatabase {
+            database: index_file.clone(),
+            source: e,
+        })?
         .filter(|v| {
             v.as_ref().ok().map_or(true, |(store_path, entry)| {
                 store_path.origin().toplevel
@@ -268,7 +276,10 @@ fn command_not_found(args: Vec<OsString>) -> Result<()> {
 
     let mut attrs = HashSet::new();
     for v in results {
-        let (store_path, _) = v.chain_err(|| ErrorKind::ReadDatabase(index_file.clone()))?;
+        let (store_path, _) = v.map_err(|e| Error::ReadDatabase {
+            database: index_file.clone(),
+            source: e,
+        })?;
 
         attrs.insert(format!(
             "{}.{}",
@@ -575,14 +586,6 @@ fn main() {
     if matches!(args.get(1), Some(arg) if arg == "--command-not-found") {
         if let Err(e) = command_not_found(args) {
             eprintln!("error: {e}");
-
-            for e in e.iter().skip(1) {
-                eprintln!("caused by: {e}");
-            }
-
-            if let Some(backtrace) = e.backtrace() {
-                eprintln!("backtrace: {backtrace:?}");
-            }
         }
         process::exit(127);
     }
